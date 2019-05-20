@@ -1,0 +1,8 @@
+This contains the source code for the TyDe 2019 submission, "Deferring the details and deriving programs".
+
+
+Right now, all the source code is in a (rough) state in test2.lagda.
+
+I will clean it up into a library in the coming days.
+
+-Liam O'Connor
