@@ -10,6 +10,27 @@ module test2 where
 open import Data.Product
 
 
+module DeferredMonad where
+  open import Function
+  import Level
+  variable ℓ ℓ₁ ℓ₂ : Level.Level
+  variable A B X : Set ℓ
+
+  record Deferred (X : Set ℓ) : Set (Level.suc ℓ) where
+     constructor Prf
+     field
+       goals : Set
+       prove : goals → X
+
+  open Deferred
+  _<*>_ :  Deferred (A → B) → Deferred A → Deferred B
+  d₁ <*> d₂ = Prf (goals d₁ × goals d₂)
+                λ { (p₁ , p₂ ) → prove d₁ p₁ (prove d₂ p₂) }
+
+  join : Deferred (Deferred A) → Deferred A
+  join d = Prf (Σ (goals d) (goals ∘ prove d))
+            λ { (g , g′) →  prove (prove d g) g′ }
+
 module DeferredApplicative where
   open import Data.List hiding ([_])
   open import Function
@@ -52,7 +73,7 @@ module DeferredApplicative where
   f <$> x = pure f <*> x
 
   later : ∀{X} → Deferred X
-  later {X} = Prf (X ∷ []) λ { (x ∷ xs) → x }
+  later {X} = Prf (X ∷ []) λ { (x ∷ []) → x }
 
 
 -- Defer the Details when Deriving Programs

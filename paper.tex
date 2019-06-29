@@ -1,5 +1,5 @@
 %% For double-blind review submission, w/o CCS and ACM Reference (max submission space)
-\documentclass[sigplan,review]{acmart}\settopmatter{printfolios=true,printccs=false,printacmref=false}
+\documentclass[sigplan]{acmart}%\settopmatter{printfolios=true,printccs=false,printacmref=false}
 %% For double-blind review submission, w/ CCS and ACM Reference
 %\documentclass[sigplan,review,anonymous]{acmart}\settopmatter{printfolios=true}
 %% For single-blind review submission, w/o CCS and ACM Reference (max submission space)
@@ -8,22 +8,31 @@
 %\documentclass[sigplan,review]{acmart}\settopmatter{printfolios=true}
 %% For final camera-ready submission, w/ required CCS and ACM Reference
 %\documentclass[sigplan]{acmart}\settopmatter{}
-
+\usepackage{flushend}
 \usepackage{soul}
 %% Conference information
 %% Supplied to authors by publisher for camera-ready submission;
 %% use defaults for review submission.
-\acmConference[TyDe'19]{ACM SIGPLAN Workshop on Type-driven Development}{August 18, 2019}{Berlin, Germany}
+
+%%% The following is specific to TyDe '19 and the paper
+%%% 'Deferring the Details and Deriving Programs'
+%%% by Liam O'Connor.
+%%%
+\setcopyright{acmlicensed}
+\acmPrice{15.00}
+\acmDOI{10.1145/3331554.3342605}
 \acmYear{2019}
-\acmISBN{} % \acmISBN{978-x-xxxx-xxxx-x/YY/MM}
-\acmDOI{} % \acmDOI{10.1145/nnnnnnn.nnnnnnn}
-\startPage{1}
+\copyrightyear{2019}
+\acmISBN{978-1-4503-6815-5/19/08}
+\acmConference[TyDe '19]{Proceedings of the 4th ACM SIGPLAN International Workshop on Type-Driven Development}{August 18, 2019}{Berlin, Germany}
+\acmBooktitle{Proceedings of the 4th ACM SIGPLAN International Workshop on Type-Driven Development (TyDe '19), August 18, 2019, Berlin, Germany}
+%\startPage{1}
 
 %% Copyright information
 %% Supplied to authors (based on authors' rights management selection;
 %% see authors.acm.org) by publisher for camera-ready submission;
 %% use 'none' for review submission.
-\setcopyright{none}
+%\setcopyright{none}
 %\setcopyright{acmcopyright}
 %\setcopyright{acmlicensed}
 %\setcopyright{rightsretained}
@@ -515,7 +524,7 @@ provided later:
 \AgdaSymbol{\{}\AgdaSpace{}%
 \AgdaSymbol{(}\AgdaBound{x}\AgdaSpace{}%
 \AgdaOperator{\AgdaInductiveConstructor{∷}}\AgdaSpace{}%
-\AgdaBound{xs}\AgdaSymbol{)}\AgdaSpace{}%
+\AgdaInductiveConstructor{[]]}\AgdaSymbol{)}\AgdaSpace{}%
 \AgdaSymbol{→}\AgdaSpace{}%
 \AgdaBound{x}\AgdaSpace{}%
 \AgdaSymbol{\}}\<%
@@ -675,13 +684,137 @@ two $\AgdaDatatype{Delay}$ computations, but
 unlike $\AgdaFunction{\ensuremath{\circledast}}$, the second computation is
  \emph{dependent} on the results of the first. 
  This means that if our $\AgdaDatatype{Delay}$ type were a monad, we could not
- statically determine all the deferred obligations of a computation, 
+ determine all the deferred obligations of a computation at once, 
  as some of these obligations would only be deferred \emph{after} proofs for other 
- goals had been provided. 
+ goals had been provided.  
+
+ As our \AgdaDatatype{HList} type is an $n$-ary generalisation of a simple \emph{non-dependent} 
+ product type, we have no way to express such a dependency, and thus \AgdaDatatype{Delay}
+ is not a monad. We can remedy this by defining our \AgdaDatatype{Delay} type more generally, using a single type for its deferred obligations, rather 
+ than a list of types:
+\begin{code}
+\>[2]\AgdaKeyword{record}\AgdaSpace{}%
+\AgdaRecord{MDelay}\AgdaSpace{}%
+\AgdaSymbol{(}\AgdaBound{X}\AgdaSpace{}%
+\AgdaSymbol{:}\AgdaSpace{}%
+\AgdaPrimitiveType{Set}\AgdaSpace{}%
+\AgdaGeneralizable{ℓ}\AgdaSymbol{)}\AgdaSpace{}%
+\AgdaSymbol{:}\AgdaSpace{}%
+\AgdaPrimitiveType{Set}\AgdaSpace{}%
+\AgdaSymbol{(}\AgdaPrimitive{Level.suc}\AgdaSpace{}%
+\AgdaBound{ℓ}\AgdaSymbol{)}\AgdaSpace{}%
+\AgdaKeyword{where}\<%
+\\
+\>[2][@{}l@{\AgdaIndent{0}}]%
+\>[5]\AgdaKeyword{constructor}\AgdaSpace{}%
+\AgdaInductiveConstructor{MPrf}\<%
+\\
+%
+\>[5]\AgdaKeyword{field}\<%
+\\
+\>[5][@{}l@{\AgdaIndent{0}}]%
+\>[7]\AgdaField{goals}\AgdaSpace{}%
+\AgdaSymbol{:}\AgdaSpace{}%
+\AgdaPrimitiveType{Set}\<%
+\\
+%
+\>[7]\AgdaField{prove}\AgdaSpace{}%
+\AgdaSymbol{:}\AgdaSpace{}%
+\AgdaField{goals}\AgdaSpace{}%
+\AgdaSymbol{→}\AgdaSpace{}%
+\AgdaBound{X}\<%
+\end{code}
+The application operation now combines the goals of the two subcomputations with a simple product type:
+
+\begin{code}
+\>[2]\AgdaOperator{\AgdaFunction{\AgdaUnderscore{}\ensuremath{\circledast}\AgdaUnderscore{}}}\AgdaSpace{}%
+\AgdaSymbol{:}%
+\>[11]\AgdaRecord{MDelay}\AgdaSpace{}%
+\AgdaSymbol{(}\AgdaGeneralizable{A}\AgdaSpace{}%
+\AgdaSymbol{→}\AgdaSpace{}%
+\AgdaGeneralizable{B}\AgdaSymbol{)}\AgdaSpace{}%
+\AgdaSymbol{→}\AgdaSpace{}%
+\AgdaRecord{MDelay}\AgdaSpace{}%
+\AgdaGeneralizable{A}\AgdaSpace{}%
+\AgdaSymbol{→}\AgdaSpace{}%
+\AgdaRecord{MDelay}\AgdaSpace{}%
+\AgdaGeneralizable{B}\<%
+\\
+%
+\>[2]\AgdaBound{d₁}\AgdaSpace{}%
+\AgdaOperator{\AgdaFunction{\ensuremath{\circledast}}}\AgdaSpace{}%
+\AgdaBound{d₂}\AgdaSpace{}%
+\AgdaSymbol{=}%
+\>[51I]\AgdaInductiveConstructor{MPrf}\AgdaSpace{}%
+\AgdaSymbol{(}\AgdaField{goals}\AgdaSpace{}%
+\AgdaBound{d₁}\AgdaSpace{}%
+\AgdaOperator{\AgdaFunction{×}}\AgdaSpace{}%
+\AgdaField{goals}\AgdaSpace{}%
+\AgdaBound{d₂}\AgdaSymbol{)}\<%
+\\
+\>[51I][@{}l@{\AgdaIndent{0}}]%
+\>[16]\AgdaSymbol{λ}\AgdaSpace{}%
+\AgdaSymbol{\{}\AgdaSpace{}%
+\AgdaSymbol{(}\AgdaBound{p₁}\AgdaSpace{}%
+\AgdaOperator{\AgdaInductiveConstructor{,}}\AgdaSpace{}%
+\AgdaBound{p₂}\AgdaSpace{}%
+\AgdaSymbol{)}\AgdaSpace{}%
+\AgdaSymbol{→}\AgdaSpace{}%
+\AgdaField{prove}\AgdaSpace{}%
+\AgdaBound{d₁}\AgdaSpace{}%
+\AgdaBound{p₁}\AgdaSpace{}%
+\AgdaSymbol{(}\AgdaField{prove}\AgdaSpace{}%
+\AgdaBound{d₂}\AgdaSpace{}%
+\AgdaBound{p₂}\AgdaSymbol{)}\AgdaSpace{}%
+\AgdaSymbol{\}}\<%
+\end{code}
+ Furthermore, the monadic \AgdaDatatype{join} operator can now be defined using a $\Sigma$-type to express the telescopic dependency between goals:
+
+ \begin{code}
+  \>[2]\AgdaFunction{join}\AgdaSpace{}%
+  \AgdaSymbol{:}\AgdaSpace{}%
+  \AgdaRecord{MDelay}\AgdaSpace{}%
+  \AgdaSymbol{(}\AgdaRecord{MDelay}\AgdaSpace{}%
+  \AgdaGeneralizable{A}\AgdaSymbol{)}\AgdaSpace{}%
+  \AgdaSymbol{→}\AgdaSpace{}%
+  \AgdaRecord{MDelay}\AgdaSpace{}%
+  \AgdaGeneralizable{A}\<%
+  \\
+  %
+  \>[2]\AgdaFunction{join}\AgdaSpace{}%
+  \AgdaBound{d}\AgdaSpace{}%
+  \AgdaSymbol{=}%
+  \>[79I]\AgdaInductiveConstructor{MPrf}\AgdaSpace{}%
+  \AgdaSymbol{(}\AgdaRecord{Σ}\AgdaSpace{}%
+  \AgdaSymbol{(}\AgdaField{goals}\AgdaSpace{}%
+  \AgdaBound{d}\AgdaSymbol{)}\AgdaSpace{}%
+  \AgdaSymbol{(}\AgdaField{goals}\AgdaSpace{}%
+  \AgdaOperator{\AgdaFunction{∘}}\AgdaSpace{}%
+  \AgdaField{prove}\AgdaSpace{}%
+  \AgdaBound{d}\AgdaSymbol{))}\<%
+  \\
+  \>[79I][@{}l@{\AgdaIndent{0}}]%
+  \>[12]\AgdaSymbol{λ}\AgdaSpace{}%
+  \AgdaSymbol{\{}\AgdaSpace{}%
+  \AgdaSymbol{(}\AgdaBound{g}\AgdaSpace{}%
+  \AgdaOperator{\AgdaInductiveConstructor{,}}\AgdaSpace{}%
+  \AgdaBound{g$'$}\AgdaSymbol{)}\AgdaSpace{}%
+  \AgdaSymbol{→}%
+  \>[28]\AgdaField{prove}\AgdaSpace{}%
+  \AgdaSymbol{(}\AgdaField{prove}\AgdaSpace{}%
+  \AgdaBound{d}\AgdaSpace{}%
+  \AgdaBound{g}\AgdaSymbol{)}\AgdaSpace{}%
+  \AgdaBound{g$'$}\AgdaSpace{}%
+  \AgdaSymbol{\}}\<%
+  \end{code}
+This definition is slightly simpler than that of \AgdaDatatype{Delay}, but it results in the type of deferred obligations 
+forming a tree structure that resembles the structure of the outline we have already written. We have to describe 
+our structure twice: once in the outline, and once in the proofs.  Furthermore, we are repeating ourselves for little to 
+no apparent benefit, as our \AgdaDatatype{Delay} type is sufficient for even the most sophisticated examples in this paper.
 
 The greater static knowledge afforded by applicative functors has lead to them being preferred 
 over monads in many domains for efficiency reasons~\citep{tyde16,haxl,haxl2,applicativedo}. In our case, however,
-this static knowledge is not just desirable, but mandatory to ensure a clean separation of concerns 
+we prefer applicative functors to maintain a clean separation of concerns 
 between structure and proof.
 
 \subsection{Small examples}
@@ -970,7 +1103,8 @@ by discharging each of the verification conditions by proof.
 Before verifying imperative programs we must first define an imperative language in which 
 to write them. We will base our definitions on the language of regular imperative programs,
 so named for its resemblance to regular expressions, presented in Figure~\ref{fig:rip}. 
-The exact origins of this language are unclear, emerging from folklore in the Netherlands and the US
+Expressing imperative programs as a Kleene algebra in this way is not new, but the exact origins 
+of this language are unclear, emerging from folklore in the Netherlands and the US
 during the mid-1970s~\cite{rip1,rip2,rip3,rip4}. The semantics of this language are given 
 in terms of binary \emph{relations} on states. For a given program $\mathcal{P}$, 
 we say $(\sigma_1, \sigma_2) \in \llbracket \mathcal{P} \rrbracket$ iff the state $\sigma_2$ 
@@ -1960,7 +2094,7 @@ For this program we shall define our state parameter to be the following record 
 \AgdaDatatype{ℕ}\<%
 \end{code}
 The specification of a swap procedure is interesting because it requires the 
-use of logical constants or \emph{freeze varibales} to refer to the values that the 
+use of logical constants or \emph{freeze variables} to refer to the values that the 
 variables $\AgdaField{i}$ and $\AgdaField{j}$ had at the beginning of the 
 program. In \textsc{Trip}, ordinary Agda variables, acting as metavariables for 
 \textsc{Trip}, can fulfil this purpose:
@@ -2085,8 +2219,8 @@ we must turn to meta-programming.
 
 Agda's meta-programming facilities directly expose the implementation of
 parts of the Agda type checker and elaborator behind an interface in a 
-monad called $\AgdaDatatype{TC}$. This feature is similar to the 
-elaborator reflection in Idris~\citep{elab1} or the tactic metaprogramming in Lean~\citep{leantac}.
+monad called $\AgdaDatatype{TC}$. This feature is similar to 
+elaborator reflection in Idris~\citep{elab1} or tactic metaprogramming in Lean~\citep{leantac}.
 We define a meta-program that, given a field name, generates a setter function 
 for the state record which updates that field:\footnote{We omit implementation here 
 in the interest of brevity, as it is over 50 lines long.}
@@ -2198,7 +2332,7 @@ Lastly, we define an Agda macro to generate the appropriate code
 for the syntax $a\ \AgdaMacro{\ensuremath{:=}}\ b$. An Agda macro 
 is a \AgdaDatatype{TC} procedure that generates a term to unify with 
 a hole, which is always the last argument given to the macro. Some 
-of the macro's arguments can also be \emph{quoted} i.e.\ represented
+of the macro's arguments can also be \emph{quoted}, i.e.\ represented
 as an explicit syntax tree. In our macro, the only quoted term is the
 field name, used to generate the field setter which is in turn used 
 as the parameter to our assignment principle:
@@ -2761,262 +2895,6 @@ This additional assertion
 , called the guard, is proven to follow from the statement's pre-condition as a
 deferred obligation, separately from the program.
 
-The assignment principle for this syntax is significantly more general 
-than our principle for simple assignments (\AgdaFunction{assn}).
-Because the update expression 
-now depends upon the pre-condition, the pre-condition can no longer 
-be merely the post-condition composed with the update. Instead,
-we require a proof that the pre-condition $\varphi$ implies the guard $\alpha$,
-and a proof that the post-condition $\psi$ holds after the state has been updated:
-\begin{code}
-\>[3]\AgdaFunction{grd}%
-\>[1515I]\AgdaSymbol{:}%
-\>[1516I]\AgdaSymbol{\{}\AgdaBound{ϕ}\AgdaSpace{}%
-\AgdaBound{ψ}\AgdaSpace{}%
-\AgdaBound{α}\AgdaSpace{}%
-\AgdaSymbol{:}\AgdaSpace{}%
-\AgdaFunction{Assertion}\AgdaSymbol{\}\{}\AgdaBound{X}\AgdaSpace{}%
-\AgdaSymbol{:}\AgdaSpace{}%
-\AgdaPrimitiveType{Set}\AgdaSymbol{\}}\<%
-\\
-\>[11]\AgdaSymbol{(}\AgdaBound{e}\AgdaSpace{}%
-\AgdaSymbol{:}\AgdaSpace{}%
-\AgdaSymbol{⦃}\AgdaSpace{}%
-\AgdaBound{σ}\AgdaSpace{}%
-\AgdaSymbol{:}\AgdaSpace{}%
-\AgdaBound{State}\AgdaSpace{}%
-\AgdaSymbol{⦄}\AgdaSpace{}%
-\AgdaSymbol{→}\AgdaSpace{}%
-\AgdaBound{α}\AgdaSpace{}%
-\AgdaSymbol{⦃}\AgdaSpace{}%
-\AgdaBound{σ}\AgdaSpace{}%
-\AgdaSymbol{⦄}\AgdaSpace{}%
-\AgdaSymbol{→}\AgdaSpace{}%
-\AgdaBound{X}\AgdaSymbol{)}\<%
-\\
-%
-\>[11]\AgdaSymbol{(}\AgdaBound{set}\AgdaSpace{}%
-\AgdaSymbol{:}\AgdaSpace{}%
-\AgdaBound{X}\AgdaSpace{}%
-\AgdaSymbol{→}\AgdaSpace{}%
-\AgdaBound{State}\AgdaSpace{}%
-\AgdaSymbol{→}\AgdaSpace{}%
-\AgdaBound{State}\AgdaSymbol{)}\<%
-\\
-\>[.][@{}l@{}]\<[1515I]%
-\>[11]\AgdaSymbol{→}\AgdaSpace{}%
-\AgdaRecord{Delay}\AgdaSpace{}%
-\AgdaSymbol{(}\AgdaOperator{\AgdaFunction{Π:}}\AgdaSpace{}%
-\AgdaSymbol{(}\AgdaBound{ϕ}\AgdaSpace{}%
-\AgdaSymbol{→}\AgdaSpace{}%
-\AgdaBound{α}\AgdaSymbol{))}\<%
-\\
-%
-\>[11]\AgdaSymbol{→}\AgdaSpace{}%
-\AgdaRecord{Delay}\AgdaSpace{}%
-\AgdaSymbol{(}\AgdaOperator{\AgdaFunction{Π:}}\AgdaSpace{}%
-\AgdaSymbol{λ}\AgdaSpace{}%
-\AgdaSymbol{⦃}\AgdaSpace{}\!%
-\AgdaBound{σ}\AgdaSpace{}\!%
-\AgdaSymbol{⦄}%
-\>[1556I]\AgdaSymbol{→}\AgdaSpace{}%
-\AgdaBound{ϕ}\AgdaSpace{}%
-\AgdaSymbol{→}\AgdaSpace{}%
-\AgdaSymbol{(}\AgdaBound{g}\AgdaSpace{}%
-\AgdaSymbol{:}\AgdaSpace{}%
-\AgdaBound{α}\AgdaSymbol{)}\AgdaSpace{}%
-\AgdaSymbol{→}\AgdaSpace{}%
-\AgdaBound{ψ}\AgdaSpace{}%
-\AgdaSymbol{⦃}\AgdaSpace{}\!%
-\AgdaBound{set}\AgdaSpace{}%
-\AgdaSymbol{(}\AgdaBound{e}\AgdaSpace{}%
-\AgdaBound{g}\AgdaSymbol{)}\AgdaSpace{}%
-\AgdaBound{σ}\AgdaSpace{}\!%
-\AgdaSymbol{⦄)}\<%
-\\
-%
-\>[11]\AgdaSymbol{→}\AgdaSpace{}%
-\AgdaRecord{Delay}\AgdaSpace{}%
-\AgdaOperator{\AgdaDatatype{[}}\AgdaSpace{}%
-\AgdaBound{ϕ}\AgdaSpace{}%
-\AgdaOperator{\AgdaDatatype{,}}\AgdaSpace{}%
-\AgdaBound{ψ}\AgdaSpace{}%
-\AgdaOperator{\AgdaDatatype{]}}\<%
-\\
-%
-\>[3]\AgdaFunction{grd}\AgdaSpace{}%
-\AgdaBound{e}\AgdaSpace{}%
-\AgdaBound{set}\AgdaSpace{}%
-\AgdaBound{p₁}\AgdaSpace{}%
-\AgdaBound{p₂}\AgdaSpace{}%
-\AgdaSymbol{=}\AgdaSpace{}%
-\AgdaSymbol{⦇}\AgdaSpace{}%
-\AgdaFunction{update}\AgdaSpace{}%
-\AgdaBound{p₁}\AgdaSpace{}%
-\AgdaBound{p₂}\AgdaSpace{}%
-\AgdaSymbol{⦈}\<%
-\\
-\>[3][@{}l@{\AgdaIndent{0}}]%
-\>[5]\AgdaKeyword{where}%
-\>[1585I]\AgdaFunction{update}\AgdaSpace{}%
-\AgdaSymbol{=}\AgdaSpace{}%
-\AgdaSymbol{λ}\AgdaSpace{}%
-\AgdaBound{ϕ→α}\AgdaSpace{}%
-\AgdaBound{ϕ→α→ψ}\AgdaSpace{}%
-\AgdaSymbol{→}\AgdaSpace{}%
-\AgdaInductiveConstructor{UPD}\AgdaSpace{}%
-\AgdaSymbol{λ}\AgdaSpace{}%
-\AgdaKeyword{where}\<%
-\\
-\>[1585I][@{}l@{\AgdaIndent{0}}]%
-\>[13]\AgdaSymbol{(}\AgdaBound{σ}\AgdaSpace{}%
-\AgdaOperator{\AgdaInductiveConstructor{,}}%
-\>[1595I]\AgdaBound{ϕ}\AgdaSymbol{)}\AgdaSpace{}%
-\AgdaSymbol{→}\AgdaSpace{}%
-\AgdaKeyword{let}\<%
-\\
-\>[.][@{}l@{}]\<[1595I]%
-\>[18]\AgdaBound{α}\AgdaSpace{}%
-\AgdaSymbol{=}\AgdaSpace{}%
-\AgdaBound{ϕ→α}\AgdaSpace{}%
-\AgdaSymbol{⦃}\AgdaSpace{}%
-\AgdaBound{σ}\AgdaSpace{}%
-\AgdaSymbol{⦄}\AgdaSpace{}%
-\AgdaBound{ϕ}\<%
-\\
-%
-\>[18]\AgdaBound{ψ}\AgdaSpace{}%
-\AgdaSymbol{=}\AgdaSpace{}%
-\AgdaBound{ϕ→α→ψ}\AgdaSpace{}%
-\AgdaSymbol{⦃}\AgdaSpace{}%
-\AgdaBound{σ}\AgdaSpace{}%
-\AgdaSymbol{⦄}\AgdaSpace{}%
-\AgdaBound{ϕ}\AgdaSpace{}%
-\AgdaBound{α}\<%
-\\
-\>[13][@{}l@{\AgdaIndent{0}}]%
-\>[15]\AgdaKeyword{in}\AgdaSpace{}%
-\AgdaBound{set}\AgdaSpace{}%
-\AgdaSymbol{(}\AgdaBound{e}\AgdaSpace{}%
-\AgdaSymbol{⦃}\AgdaSpace{}%
-\AgdaBound{σ}\AgdaSpace{}%
-\AgdaSymbol{⦄}\AgdaSpace{}%
-\AgdaBound{α}\AgdaSymbol{)}\AgdaSpace{}%
-\AgdaBound{σ}\AgdaSpace{}%
-\AgdaOperator{\AgdaInductiveConstructor{,}}\AgdaSpace{}%
-\AgdaBound{ψ}\<%
-\end{code}
-Our macro for the syntax is broadly similar to the macro for \AgdaFunction{assn},
-except that it uses the proof delay applicative to defer proving both of the implications 
-until \AgdaFunction{later}:
-\begin{code}
-\>[4]\AgdaFunction{guardedM}%
-\>[1620I]\AgdaSymbol{:}%
-\>[1621I]\AgdaSymbol{\{}\AgdaBound{ϕ}\AgdaSpace{}%
-\AgdaBound{ψ}\AgdaSpace{}%
-\AgdaSymbol{:}\AgdaSpace{}%
-\AgdaFunction{Assertion}\AgdaSymbol{\}\{}\AgdaBound{X}\AgdaSpace{}%
-\AgdaSymbol{:}\AgdaSpace{}%
-\AgdaPrimitiveType{Set}\AgdaSymbol{\}(}\AgdaBound{α}\AgdaSpace{}%
-\AgdaSymbol{:}\AgdaSpace{}%
-\AgdaFunction{Assertion}\AgdaSymbol{)}\<%
-\\
-\>[.][@{}l@{}]\<[1621I]%
-\>[15]\AgdaSymbol{(}\AgdaBound{e}\AgdaSpace{}%
-\AgdaSymbol{:}\AgdaSpace{}%
-\AgdaSymbol{⦃}\AgdaSpace{}%
-\AgdaBound{σ}\AgdaSpace{}%
-\AgdaSymbol{:}\AgdaSpace{}%
-\AgdaBound{State}\AgdaSpace{}%
-\AgdaSymbol{⦄}\AgdaSpace{}%
-\AgdaSymbol{→}\AgdaSpace{}%
-\AgdaBound{α}\AgdaSpace{}%
-\AgdaSymbol{⦃}\AgdaSpace{}%
-\AgdaBound{σ}\AgdaSpace{}%
-\AgdaSymbol{⦄}\AgdaSpace{}%
-\AgdaSymbol{→}\AgdaSpace{}%
-\AgdaBound{X}\AgdaSymbol{)}\<%
-\\
-\>[.][@{}l@{}]\<[1620I]%
-\>[13]\AgdaSymbol{→}\AgdaSpace{}%
-\AgdaPostulate{Name}\<%
-\\
-%
-\>[13]\AgdaSymbol{→}\AgdaSpace{}%
-\AgdaDatatype{Term}\AgdaSpace{}%
-\AgdaSymbol{→}\AgdaSpace{}%
-\AgdaPostulate{TC}\AgdaSpace{}%
-\AgdaRecord{⊤}\<%
-\\
-%
-\>[4]\AgdaFunction{guardedM}\AgdaSpace{}%
-\AgdaSymbol{\{}\AgdaBound{ϕ}\AgdaSymbol{\}}\AgdaSpace{}%
-\AgdaSymbol{\{}\AgdaBound{ψ}\AgdaSymbol{\}}\AgdaSpace{}%
-\AgdaBound{α}\AgdaSpace{}%
-\AgdaBound{e}\AgdaSpace{}%
-\AgdaBound{fld}\AgdaSpace{}%
-\AgdaBound{hole}\AgdaSpace{}%
-\AgdaSymbol{=}\AgdaSpace{}%
-\AgdaKeyword{do}\<%
-\\
-\>[4][@{}l@{\AgdaIndent{0}}]%
-\>[8]\AgdaBound{setter}\AgdaSpace{}%
-\AgdaOperator{\AgdaFunction{←}}\AgdaSpace{}%
-\AgdaFunction{fieldSetter}\AgdaSpace{}%
-\AgdaBound{fld}\<%
-\\
-%
-\>[8]\AgdaBound{trm}\AgdaSpace{}%
-\AgdaOperator{\AgdaFunction{←}}\AgdaSpace{}%
-\AgdaPostulate{quoteTC}\AgdaSpace{}%
-\AgdaSymbol{(}\AgdaFunction{guarded}\AgdaSpace{}%
-\AgdaSymbol{\{}\AgdaBound{ϕ}\AgdaSymbol{\}}\AgdaSpace{}%
-\AgdaSymbol{\{}\AgdaBound{ψ}\AgdaSymbol{\}}\AgdaSpace{}%
-\AgdaBound{e}\AgdaSpace{}%
-\AgdaBound{setter}\AgdaSpace{}%
-\AgdaFunction{later}\AgdaSpace{}%
-\AgdaFunction{later}\AgdaSymbol{)}\<%
-\\
-%
-\>[8]\AgdaPostulate{unify}\AgdaSpace{}%
-\AgdaBound{hole}\AgdaSpace{}%
-\AgdaBound{trm}\<%
-\\
-%
-\>[4]\AgdaKeyword{syntax}\AgdaSpace{}%
-\AgdaMacro{guardedM}\AgdaSpace{}%
-\AgdaBound{τ}\AgdaSpace{}%
-\AgdaSymbol{(λ}\AgdaSpace{}%
-\AgdaBound{g}\AgdaSpace{}%
-\AgdaSymbol{→}\AgdaSpace{}%
-\AgdaBound{v}\AgdaSymbol{)}\AgdaSpace{}%
-\AgdaBound{fld}\AgdaSpace{}%
-\AgdaSymbol{=}\AgdaSpace{}%
-\AgdaBound{fld}\AgdaSpace{}%
-\AgdaMacro{≔}\AgdaSpace{}%
-\AgdaBound{v}\AgdaSpace{}%
-\AgdaMacro{given}\AgdaSpace{}%
-\AgdaBound{g}\AgdaSpace{}%
-\AgdaMacro{∶}\AgdaSpace{}%
-\AgdaBound{τ}\<%
-\end{code}
-This syntax is general enough to encompass any assignment we could need, but it 
-does generate two deferred obligations. Therefore, the more specialised simple 
-assignment syntax is still preferable wherever possible.
-
-\subsection{Verified list sum}
-Having now completed our definitions for the surface syntax of \textsc{Trip}, we 
-can now return to our list sum problem. \autoref{fig:vcg} shows a verified 
-list sum implementation in \textsc{Trig}, with the proofs slightly expurgated 
-for presentation purposes. The arrows in the figure show how each proof 
-obligation is generated, either from an \AgdaFunction{assert} statement or 
-a guarded assignment. 
-
-We use an explicit \AgdaDatatype{assert} at the end of the loop to fix the 
-loop invariant, which expresses that the \AgdaField{total} will be the sum 
-of the first $\AgdaField{i}$ elements of the list, as well as the book-keeping 
-invariant that $\AgdaField{i}$ is at most the length of the list.
-
 
 \begin{figure*}
 \begin{tikzpicture}
@@ -3292,6 +3170,262 @@ invariant that $\AgdaField{i}$ is at most the length of the list.
 \caption{Cumulative sum}
 \label{fig:csum}
 \end{figure*}
+The assignment principle for this syntax is significantly more general 
+than our principle for simple assignments (\AgdaFunction{assn}).
+Because the update expression 
+now depends upon the pre-condition, the pre-condition can no longer 
+be merely the post-condition composed with the update. Instead,
+we require a proof that the pre-condition $\varphi$ implies the guard $\alpha$,
+and a proof that the post-condition $\psi$ holds after the state has been updated:
+\begin{code}
+\>[3]\AgdaFunction{grd}%
+\>[1515I]\AgdaSymbol{:}%
+\>[1516I]\AgdaSymbol{\{}\AgdaBound{ϕ}\AgdaSpace{}%
+\AgdaBound{ψ}\AgdaSpace{}%
+\AgdaBound{α}\AgdaSpace{}%
+\AgdaSymbol{:}\AgdaSpace{}%
+\AgdaFunction{Assertion}\AgdaSymbol{\}\{}\AgdaBound{X}\AgdaSpace{}%
+\AgdaSymbol{:}\AgdaSpace{}%
+\AgdaPrimitiveType{Set}\AgdaSymbol{\}}\<%
+\\
+\>[11]\AgdaSymbol{(}\AgdaBound{e}\AgdaSpace{}%
+\AgdaSymbol{:}\AgdaSpace{}%
+\AgdaSymbol{⦃}\AgdaSpace{}%
+\AgdaBound{σ}\AgdaSpace{}%
+\AgdaSymbol{:}\AgdaSpace{}%
+\AgdaBound{State}\AgdaSpace{}%
+\AgdaSymbol{⦄}\AgdaSpace{}%
+\AgdaSymbol{→}\AgdaSpace{}%
+\AgdaBound{α}\AgdaSpace{}%
+\AgdaSymbol{⦃}\AgdaSpace{}%
+\AgdaBound{σ}\AgdaSpace{}%
+\AgdaSymbol{⦄}\AgdaSpace{}%
+\AgdaSymbol{→}\AgdaSpace{}%
+\AgdaBound{X}\AgdaSymbol{)}\<%
+\\
+%
+\>[11]\AgdaSymbol{(}\AgdaBound{set}\AgdaSpace{}%
+\AgdaSymbol{:}\AgdaSpace{}%
+\AgdaBound{X}\AgdaSpace{}%
+\AgdaSymbol{→}\AgdaSpace{}%
+\AgdaBound{State}\AgdaSpace{}%
+\AgdaSymbol{→}\AgdaSpace{}%
+\AgdaBound{State}\AgdaSymbol{)}\<%
+\\
+\>[.][@{}l@{}]\<[1515I]%
+\>[11]\AgdaSymbol{→}\AgdaSpace{}%
+\AgdaRecord{Delay}\AgdaSpace{}%
+\AgdaSymbol{(}\AgdaOperator{\AgdaFunction{Π:}}\AgdaSpace{}%
+\AgdaSymbol{(}\AgdaBound{ϕ}\AgdaSpace{}%
+\AgdaSymbol{→}\AgdaSpace{}%
+\AgdaBound{α}\AgdaSymbol{))}\<%
+\\
+%
+\>[11]\AgdaSymbol{→}\AgdaSpace{}%
+\AgdaRecord{Delay}\AgdaSpace{}%
+\AgdaSymbol{(}\AgdaOperator{\AgdaFunction{Π:}}\AgdaSpace{}%
+\AgdaSymbol{λ}\AgdaSpace{}%
+\AgdaSymbol{⦃}\AgdaSpace{}\!%
+\AgdaBound{σ}\AgdaSpace{}\!%
+\AgdaSymbol{⦄}%
+\>[1556I]\AgdaSymbol{→}\AgdaSpace{}%
+\AgdaBound{ϕ}\AgdaSpace{}%
+\AgdaSymbol{→}\AgdaSpace{}%
+\AgdaSymbol{(}\AgdaBound{g}\AgdaSpace{}%
+\AgdaSymbol{:}\AgdaSpace{}%
+\AgdaBound{α}\AgdaSymbol{)}\AgdaSpace{}%
+\AgdaSymbol{→}\AgdaSpace{}%
+\AgdaBound{ψ}\AgdaSpace{}%
+\AgdaSymbol{⦃}\AgdaSpace{}\!%
+\AgdaBound{set}\AgdaSpace{}%
+\AgdaSymbol{(}\AgdaBound{e}\AgdaSpace{}%
+\AgdaBound{g}\AgdaSymbol{)}\AgdaSpace{}%
+\AgdaBound{σ}\AgdaSpace{}\!%
+\AgdaSymbol{⦄)}\<%
+\\
+%
+\>[11]\AgdaSymbol{→}\AgdaSpace{}%
+\AgdaRecord{Delay}\AgdaSpace{}%
+\AgdaOperator{\AgdaDatatype{[}}\AgdaSpace{}%
+\AgdaBound{ϕ}\AgdaSpace{}%
+\AgdaOperator{\AgdaDatatype{,}}\AgdaSpace{}%
+\AgdaBound{ψ}\AgdaSpace{}%
+\AgdaOperator{\AgdaDatatype{]}}\<%
+\\
+%
+\>[3]\AgdaFunction{grd}\AgdaSpace{}%
+\AgdaBound{e}\AgdaSpace{}%
+\AgdaBound{set}\AgdaSpace{}%
+\AgdaBound{p₁}\AgdaSpace{}%
+\AgdaBound{p₂}\AgdaSpace{}%
+\AgdaSymbol{=}\AgdaSpace{}%
+\AgdaSymbol{⦇}\AgdaSpace{}%
+\AgdaFunction{update}\AgdaSpace{}%
+\AgdaBound{p₁}\AgdaSpace{}%
+\AgdaBound{p₂}\AgdaSpace{}%
+\AgdaSymbol{⦈}\<%
+\\
+\>[3][@{}l@{\AgdaIndent{0}}]%
+\>[5]\AgdaKeyword{where}%
+\>[1585I]\AgdaFunction{update}\AgdaSpace{}%
+\AgdaSymbol{=}\AgdaSpace{}%
+\AgdaSymbol{λ}\AgdaSpace{}%
+\AgdaBound{ϕ→α}\AgdaSpace{}%
+\AgdaBound{ϕ→α→ψ}\AgdaSpace{}%
+\AgdaSymbol{→}\AgdaSpace{}%
+\AgdaInductiveConstructor{UPD}\AgdaSpace{}%
+\AgdaSymbol{λ}\AgdaSpace{}%
+\AgdaKeyword{where}\<%
+\\
+\>[1585I][@{}l@{\AgdaIndent{0}}]%
+\>[13]\AgdaSymbol{(}\AgdaBound{σ}\AgdaSpace{}%
+\AgdaOperator{\AgdaInductiveConstructor{,}}%
+\>[1595I]\AgdaBound{ϕ}\AgdaSymbol{)}\AgdaSpace{}%
+\AgdaSymbol{→}\AgdaSpace{}%
+\AgdaKeyword{let}\<%
+\\
+\>[.][@{}l@{}]\<[1595I]%
+\>[18]\AgdaBound{α}\AgdaSpace{}%
+\AgdaSymbol{=}\AgdaSpace{}%
+\AgdaBound{ϕ→α}\AgdaSpace{}%
+\AgdaSymbol{⦃}\AgdaSpace{}%
+\AgdaBound{σ}\AgdaSpace{}%
+\AgdaSymbol{⦄}\AgdaSpace{}%
+\AgdaBound{ϕ}\<%
+\\
+%
+\>[18]\AgdaBound{ψ}\AgdaSpace{}%
+\AgdaSymbol{=}\AgdaSpace{}%
+\AgdaBound{ϕ→α→ψ}\AgdaSpace{}%
+\AgdaSymbol{⦃}\AgdaSpace{}%
+\AgdaBound{σ}\AgdaSpace{}%
+\AgdaSymbol{⦄}\AgdaSpace{}%
+\AgdaBound{ϕ}\AgdaSpace{}%
+\AgdaBound{α}\<%
+\\
+\>[13][@{}l@{\AgdaIndent{0}}]%
+\>[15]\AgdaKeyword{in}\AgdaSpace{}%
+\AgdaBound{set}\AgdaSpace{}%
+\AgdaSymbol{(}\AgdaBound{e}\AgdaSpace{}%
+\AgdaSymbol{⦃}\AgdaSpace{}%
+\AgdaBound{σ}\AgdaSpace{}%
+\AgdaSymbol{⦄}\AgdaSpace{}%
+\AgdaBound{α}\AgdaSymbol{)}\AgdaSpace{}%
+\AgdaBound{σ}\AgdaSpace{}%
+\AgdaOperator{\AgdaInductiveConstructor{,}}\AgdaSpace{}%
+\AgdaBound{ψ}\<%
+\end{code}
+Our macro for the syntax is broadly similar to the macro for \AgdaFunction{assn},
+except that it uses the proof delay applicative to defer proving both of the implications 
+until \AgdaFunction{later}:
+\begin{code}
+\>[4]\AgdaFunction{guardedM}%
+\>[1620I]\AgdaSymbol{:}%
+\>[1621I]\AgdaSymbol{\{}\AgdaBound{ϕ}\AgdaSpace{}%
+\AgdaBound{ψ}\AgdaSpace{}%
+\AgdaSymbol{:}\AgdaSpace{}%
+\AgdaFunction{Assertion}\AgdaSymbol{\}\{}\AgdaBound{X}\AgdaSpace{}%
+\AgdaSymbol{:}\AgdaSpace{}%
+\AgdaPrimitiveType{Set}\AgdaSymbol{\}(}\AgdaBound{α}\AgdaSpace{}%
+\AgdaSymbol{:}\AgdaSpace{}%
+\AgdaFunction{Assertion}\AgdaSymbol{)}\<%
+\\
+\>[.][@{}l@{}]\<[1621I]%
+\>[15]\AgdaSymbol{(}\AgdaBound{e}\AgdaSpace{}%
+\AgdaSymbol{:}\AgdaSpace{}%
+\AgdaSymbol{⦃}\AgdaSpace{}%
+\AgdaBound{σ}\AgdaSpace{}%
+\AgdaSymbol{:}\AgdaSpace{}%
+\AgdaBound{State}\AgdaSpace{}%
+\AgdaSymbol{⦄}\AgdaSpace{}%
+\AgdaSymbol{→}\AgdaSpace{}%
+\AgdaBound{α}\AgdaSpace{}%
+\AgdaSymbol{⦃}\AgdaSpace{}%
+\AgdaBound{σ}\AgdaSpace{}%
+\AgdaSymbol{⦄}\AgdaSpace{}%
+\AgdaSymbol{→}\AgdaSpace{}%
+\AgdaBound{X}\AgdaSymbol{)}\<%
+\\
+\>[.][@{}l@{}]\<[1620I]%
+\>[13]\AgdaSymbol{→}\AgdaSpace{}%
+\AgdaPostulate{Name}\<%
+\\
+%
+\>[13]\AgdaSymbol{→}\AgdaSpace{}%
+\AgdaDatatype{Term}\AgdaSpace{}%
+\AgdaSymbol{→}\AgdaSpace{}%
+\AgdaPostulate{TC}\AgdaSpace{}%
+\AgdaRecord{⊤}\<%
+\\
+%
+\>[4]\AgdaFunction{guardedM}\AgdaSpace{}%
+\AgdaSymbol{\{}\AgdaBound{ϕ}\AgdaSymbol{\}}\AgdaSpace{}%
+\AgdaSymbol{\{}\AgdaBound{ψ}\AgdaSymbol{\}}\AgdaSpace{}%
+\AgdaBound{α}\AgdaSpace{}%
+\AgdaBound{e}\AgdaSpace{}%
+\AgdaBound{fld}\AgdaSpace{}%
+\AgdaBound{hole}\AgdaSpace{}%
+\AgdaSymbol{=}\AgdaSpace{}%
+\AgdaKeyword{do}\<%
+\\
+\>[4][@{}l@{\AgdaIndent{0}}]%
+\>[8]\AgdaBound{setter}\AgdaSpace{}%
+\AgdaOperator{\AgdaFunction{←}}\AgdaSpace{}%
+\AgdaFunction{fieldSetter}\AgdaSpace{}%
+\AgdaBound{fld}\<%
+\\
+%
+\>[8]\AgdaBound{trm}\AgdaSpace{}%
+\AgdaOperator{\AgdaFunction{←}}\AgdaSpace{}%
+\AgdaPostulate{quoteTC}\AgdaSpace{}%
+\AgdaSymbol{(}\AgdaFunction{guarded}\AgdaSpace{}%
+\AgdaSymbol{\{}\AgdaBound{ϕ}\AgdaSymbol{\}}\AgdaSpace{}%
+\AgdaSymbol{\{}\AgdaBound{ψ}\AgdaSymbol{\}}\AgdaSpace{}%
+\AgdaBound{e}\AgdaSpace{}%
+\AgdaBound{setter}\AgdaSpace{}%
+\AgdaFunction{later}\AgdaSpace{}%
+\AgdaFunction{later}\AgdaSymbol{)}\<%
+\\
+%
+\>[8]\AgdaPostulate{unify}\AgdaSpace{}%
+\AgdaBound{hole}\AgdaSpace{}%
+\AgdaBound{trm}\<%
+\\
+%
+\>[4]\AgdaKeyword{syntax}\AgdaSpace{}%
+\AgdaMacro{guardedM}\AgdaSpace{}%
+\AgdaBound{τ}\AgdaSpace{}%
+\AgdaSymbol{(λ}\AgdaSpace{}%
+\AgdaBound{g}\AgdaSpace{}%
+\AgdaSymbol{→}\AgdaSpace{}%
+\AgdaBound{v}\AgdaSymbol{)}\AgdaSpace{}%
+\AgdaBound{fld}\AgdaSpace{}%
+\AgdaSymbol{=}\AgdaSpace{}%
+\AgdaBound{fld}\AgdaSpace{}%
+\AgdaMacro{≔}\AgdaSpace{}%
+\AgdaBound{v}\AgdaSpace{}%
+\AgdaMacro{given}\AgdaSpace{}%
+\AgdaBound{g}\AgdaSpace{}%
+\AgdaMacro{∶}\AgdaSpace{}%
+\AgdaBound{τ}\<%
+\end{code}
+This syntax is general enough to encompass any assignment we could need, but it 
+does generate two deferred obligations. Therefore, the more specialised simple 
+assignment syntax is still preferable wherever possible.
+
+\subsection{Verified list sum}
+Having now completed our definitions for the surface syntax of \textsc{Trip}, we 
+can now return to our list sum problem. \autoref{fig:vcg} shows a verified 
+list sum implementation in \textsc{Trip}, with the proofs slightly expurgated 
+for presentation purposes. The arrows in the figure show how each proof 
+obligation is generated, either from an \AgdaFunction{assert} statement or 
+a guarded assignment. 
+
+We use an explicit \AgdaDatatype{assert} at the end of the loop to fix the 
+loop invariant, which expresses that the \AgdaField{total} will be the sum 
+of the first $\AgdaField{i}$ elements of the list, as well as the book-keeping 
+invariant that $\AgdaField{i}$ is at most the length of the list.
+
 \subsection{A more involved example}
 \autoref{fig:csum} shows a more involved example of a verified \textsc{Trip} program.
 This program uses the same \AgdaDatatype{SumState} type as the previous list sum example,
@@ -3421,7 +3555,7 @@ value of the variable $\AgdaField{i}$. This allows us to assert the invariant mo
 for $\AgdaField{i}$ throughout the loop (for example, after the assignment to \AgdaField{total}). 
 
 When the loop finishes and $\AgdaField{i}$ is equal to the length of the list, 
-this first and fourth conjuncts easily imply our post-condition. Nonetheless, 
+the first and fourth conjuncts easily imply our post-condition. Nonetheless, 
 establishing that the invariant is maintained and that the post-condition is met 
 required approximately one hundred lines of Agda proof. As part of future work, 
 we hope to integrate proof automation into our framework, hopefully reducing the amount 
@@ -3650,12 +3784,37 @@ with refinements, and the type checker generates proof obligations for the user
 to discharge~\citep{pvsprogram}.\medskip
 
 \noindent Both of these approaches are designed as a built-in feature of 
-the proof assistant, requiring extension to the type checking algorithm to enable 
+the proof assistant, requiring extension to the tactic language or 
+the type checking algorithm to enable 
 interactive proof to supplement automatic typechecking for programs with
  predicate subtypes. By contrast, our applicative functor does not rely on 
  language extensions or meta-programming, but rather encodes the delineation 
  between structure and proof directly in Agda itself.
 
+\paragraph{Ornaments} The ornaments idea, introduced originally by \citet{ornaments1}
+and subsequently developed by many others~\citep{ornaments2,ornaments3,ornaments4,ornaments5},
+is aimed at a similar fusion of internal and external approaches to proof in 
+dependently-typed languages. Using ornaments, one can take a basic type and ornament 
+it with additional type indices or proof obligations, such as turning a binary tree 
+into a binary search tree. This gives rise to an isomorphism between the ornamented type 
+and the product of the plain type and a descriptive structure that carries all the additional 
+proof obligations. For our binary search tree example, it would establish an isomorphism 
+between a binary search tree and the product of a plain binary tree with a proof that it 
+satisfies the binary search tree invariants. Such an isomorphism is therefore 
+performing much the same task as our \AgdaDatatype{Delay} functor, allowing proofs 
+to be deferred until after the basic structure is defined.
+
+One of the main advantages of the ornaments approach is that by starting with a basic type and 
+enriching it with further details, operations can be defined generically across many types that 
+share the same structure. With our \AgdaDatatype{Delay} functor approach, however, the user  
+starts from a richly-typed data structure, and defers obligations as-needed. This is more flexible,
+in that the user can freely choose to defer some obligations and not others, but also precludes 
+the kind of generic programming possible with ornaments.
+
+From a practical standpoint, ornaments do not integrate with Agda as cleanly:  they typically 
+require encoding of datatypes in a closed universe, and such encodings can be syntactically
+cumbersome. Our approach, on the other hand, is a standard applicative functor, for which Agda 
+has built-in syntactic conveniences. 
 
 
 \subsubsection{Imperative software verification}
@@ -3699,7 +3858,7 @@ expressivity of \textsc{Simpl} is sufficient for verification of software at sca
 which bodes well for \textsc{Trip}.
 
 The Bedrock framework~\citep{bedrock} is another framework that is embedded 
-insite a proof assistant, this time Coq. Bedrock targets low-level systems, 
+inside a proof assistant, this time Coq. Bedrock targets low-level systems, 
 and supports significant amounts of proof automation. Like \textsc{Simpl}, it
 is intended for \emph{post-hoc} verification --- using a verification condition
 generator tactic on a completed program.
@@ -3723,7 +3882,9 @@ non-interference, which would be better off delayed.
 Other uses of the \texttt{Program} feature in Coq might also be good uses for 
 the proof delay applicative. For example, an encoding of refinement types
 in Agda which delays refinement obligations until later is a promising 
-avenue for further research.
+avenue for further research. The wealth of previous work on 
+ornaments~\citep{ornaments1,ornaments2,ornaments3,ornaments4,ornaments5} may also provide 
+some interesting examples.
 
 \subsubsection{Proof automation}
 
@@ -3765,7 +3926,7 @@ clutter in the \textsc{Trip} derivations, we introduced the proof delay
 applicative, which allows us to cleanly separate structure from proof 
 not only in \textsc{Trip} derivations, but in general. 
 The entire development outlined in this paper, including all proofs 
-and auxiliary definitions, can be found at this address:
+and auxiliary definitions, can be found at this address: \nopagebreak
 \begin{center}
 \texttt{http://www.github.com/liamoc/dddp}
 \end{center}
@@ -3773,7 +3934,8 @@ and auxiliary definitions, can be found at this address:
 \begin{acks}                            %% acks environment is optional
 I would like to thank Kai Engelhardt, who
 indirectly inspired this paper. Thanks also to Willem-Paul de Roever and Rob van Glabbeek
-who assisted me with research archaeology.
+who assisted me with research archaeology, and to anonymous reviewers who, among other suggestions, pointed out that 
+ornaments are highly related.
                                         %% contents suppressed with 'anonymous'
   %% Commands \grantsponsor{<sponsorID>}{<name>}{<url>} and
   %% \grantnum[<url>]{<sponsorID>}{<number>} should be used to
