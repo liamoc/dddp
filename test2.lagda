@@ -197,6 +197,12 @@ module OrderedStructures where
              (s≤s (s≤s z≤n)) ∷ ((s≤s (s≤s z≤n)) ∷ ((s≤s (s≤s (s≤s z≤n))) ∷ ((s≤s (s≤s (s≤s (s≤s z≤n)))) ∷ ((s≤s (s≤s (s≤s (s≤s (s≤s z≤n))))) ∷ ((s≤s (s≤s (s≤s (s≤s (s≤s (s≤s (s≤s (s≤s (s≤s (s≤s z≤n)))))))))) ∷ [])))))
              done
 
+  ex : BST 2 10
+  ex = Branch 3 (Branch 2 (Leaf (s≤s (s≤s z≤n))) (Leaf (s≤s (s≤s z≤n))) )
+      (Branch 5 (Branch 4 (Leaf (s≤s (s≤s (s≤s z≤n)))) (Leaf (s≤s (s≤s (s≤s (s≤s z≤n))))))
+      (Branch 10 (Leaf (s≤s (s≤s (s≤s (s≤s (s≤s z≤n))))))
+      (Leaf (s≤s (s≤s (s≤s (s≤s (s≤s (s≤s (s≤s (s≤s (s≤s (s≤s z≤n)))))))))))))
+
 
   data OList (m n : ℕ) : Set where
     Nil  : (m ≤ n) → OList m n
@@ -208,6 +214,14 @@ module OrderedStructures where
   infixr 7 _cons_
   _cons_ : (x : ℕ) → Deferred (OList x n) → Deferred (OList m n)
   x cons xs = ⦇ (Cons x) later xs ⦈
+
+  ls : OList 1 5
+  ls = Cons 1 (s≤s z≤n)
+        (Cons 2 (s≤s z≤n)
+          (Cons 3 (s≤s (s≤s z≤n))
+            (Cons 4 (s≤s (s≤s (s≤s z≤n)))
+              (Cons 5 (s≤s (s≤s (s≤s (s≤s z≤n))))
+                (Nil (s≤s (s≤s (s≤s (s≤s (s≤s z≤n))))))))))
 
   example₁ : OList 1 5
   example₁ = structure: 1 cons 2 cons 3 cons 4 cons 5 cons nil
@@ -243,6 +257,8 @@ module PLang (Σ : Set) where
                              P))
                   (SEQ (CONS (flip _,_))
                        (GUARD (¬ g)))
+
+
 
   _﹕_ : Deferred [ ϕ , α ]
       → Deferred [ α , ψ ]
@@ -466,6 +482,16 @@ module Example where
   open DeferredApplicative
   open State ⦃ ... ⦄ 
 
+  lsum : [ ⊤ , result ≡ sum arr ]
+  lsum = SEQ (UPD (λ { ( σ , p ) → ( record σ { i = 0 ; result = 0 } , refl , z≤n)}))
+            (SEQ (WHILE  {result ≡ sum (take i arr) × i ≤ length arr} (i < length arr)
+                   (UPD λ { ( σ , x , r≡sumᵢ , i≤n) →
+                     ( record σ { result = result ⦃ σ ⦄ + (arr ⦃ σ ⦄ ! x) ; i = suc (i ⦃ σ ⦄) }
+                     , trans (cong (_+ _) r≡sumᵢ) (take-i-plus-next x) , x ) }))
+                   (CONS λ { (¬i<len , r≡sumᵢ , i≤len) →
+                     trans r≡sumᵢ (trans (cong (λ h → sum (take h arr))
+                                         (not-<-but-≤ ¬i<len i≤len))
+                                  (cong sum (take-length {ℓ = arr}))) }))
 
   postulate _!!_ : List A → ℕ → A
   nope : [ ⊤ , ⊤ ]
@@ -483,6 +509,7 @@ module Example where
        proofs:
           id ∷ (proj₂ ∷ proj₂ ∷ [])
        done
+
   example : [ ⊤ , result ≡ sum arr ]
   example = 
        structure:
