@@ -391,8 +391,7 @@ module ReflectionStuff(State : Set) where
 
 module Swap where
   open import Data.Nat
-  open import Category.Applicative
-  
+
   open import Data.Unit hiding (_≤_)
   
   record SwapState : Set where
